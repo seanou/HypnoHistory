@@ -1,3 +1,28 @@
 {
-  "placeholderImages": []
+  "placeholderImages": [
+    {
+      "id": "1",
+      "description": "A vibrant abstract painting with a mix of blue and orange.",
+      "imageUrl": "https://images.unsplash.com/photo-1531489956451-20957fab52f2?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw1fHxhYnN0cmFjdCUyMHBhaW50aW5nfGVufDB8fHx8MTc3MDQ3MDYzNXww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "abstract painting"
+    },
+    {
+      "id": "2",
+      "description": "A serene landscape with mountains and a lake.",
+      "imageUrl": "https://images.unsplash.com/photo-1612676239016-41e2c92b8e06?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw5fHxtb3VudGFpbiUyMGxhbmRzY2FwZXxlbnwwfHx8fDE3NzA0MzMxODV8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "mountain landscape"
+    },
+    {
+      "id": "3",
+      "description": "A futuristic city skyline at night.",
+      "imageUrl": "https://images.unsplash.com/photo-1675326570919-946d728e9a25?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwyfHxmdXR1cmlzdGljJTIwY2l0eXxlbnwwfHx8fDE3NzA0Njc0ODl8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "futuristic city"
+    },
+    {
+      "id": "4",
+      "description": "A close-up of a fantastical creature's eye.",
+      "imageUrl": "https://images.unsplash.com/photo-1680970722875-ac0667b207b5?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxMHx8Y3JlYXR1cmUlMjBleWV8ZW58MHx8fHwxNzcwNDg5NTI1fDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "creature eye"
+    }
+  ]
 }
