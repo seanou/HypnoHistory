@@ -3,8 +3,8 @@ import './globals.css';
 import { Toaster } from '@/components/ui/toaster';
 
 export const metadata: Metadata = {
-  title: 'VisionaryAI',
-  description: 'Generate stunning images from text with VisionaryAI.',
+  title: 'Mini App',
+  description: 'A simple app experience.',
 };
 
 export default function RootLayout({
