@@ -1,7 +1,7 @@
 "use client";
 
 import { usePathname } from 'next/navigation';
-import { GalleryHorizontal, Wand2, PanelLeft } from 'lucide-react';
+import { GalleryHorizontal, Wand2, PanelLeft, Brush } from 'lucide-react';
 import {
   SidebarProvider,
   Sidebar,
@@ -58,11 +58,9 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       </Sidebar>
       <SidebarInset>
         <header className="sticky top-0 z-10 flex h-14 items-center gap-4 border-b bg-background/80 px-4 backdrop-blur-sm sm:static sm:h-auto sm:border-0 sm:bg-transparent sm:px-6 md:hidden">
-          <SidebarTrigger asChild>
-            <Button size="icon" variant="outline" className="md:hidden">
-              <PanelLeft className="h-5 w-5" />
-              <span className="sr-only">Toggle Menu</span>
-            </Button>
+          <SidebarTrigger size="icon" variant="outline" className="md:hidden">
+            <PanelLeft className="h-5 w-5" />
+            <span className="sr-only">Toggle Menu</span>
           </SidebarTrigger>
         </header>
         {children}
