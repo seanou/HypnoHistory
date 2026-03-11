@@ -14,8 +14,8 @@ export default function Home() {
   const [currentStep, setCurrentStep] = useState(1);
   const audioRef = useRef<HTMLAudioElement>(null);
 
+  // Effect for PWA and checking local storage
   useEffect(() => {
-    // PWA and Service Worker setup
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('/sw.js').then(
         (registration) => {
@@ -32,23 +32,19 @@ export default function Home() {
       setDeferredPrompt(e);
     };
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-    
-    const handleAppInstalled = () => {
-      setDeferredPrompt(null);
-    };
-    window.addEventListener('appinstalled', handleAppInstalled);
 
+    // Check if anchoring is completed from local storage
     try {
-        if (typeof window !== 'undefined') {
-            setAnchoringCompleted(localStorage.getItem('hypnohistory_anchoring_done') === 'true');
-        }
+      if (typeof window !== 'undefined') {
+        const anchoringDone = localStorage.getItem('hypnohistory_anchoring_done') === 'true';
+        setAnchoringCompleted(anchoringDone);
+      }
     } catch (error) {
-        console.error('Could not access local storage:', error);
+      console.error('Could not access local storage:', error);
     }
 
     return () => {
       window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-      window.removeEventListener('appinstalled', handleAppInstalled);
     };
   }, []);
 
@@ -61,13 +57,13 @@ export default function Home() {
       setProgress(100);
       setTimeout(() => {
         if (isAnchoringSession) {
-            setAnchoringCompleted(true);
-            try {
-              localStorage.setItem('hypnohistory_anchoring_done', 'true');
-            } catch (error) {
-              console.error('Could not write to local storage:', error);
-            }
-            setIsAnchoringSession(false);
+          setAnchoringCompleted(true);
+          try {
+            localStorage.setItem('hypnohistory_anchoring_done', 'true');
+          } catch (error) {
+            console.error('Could not write to local storage:', error);
+          }
+          setIsAnchoringSession(false);
         }
         showScreen('result');
         setProgress(0);
@@ -125,7 +121,7 @@ export default function Home() {
     };
   }, [screen, isAnchoringSession, currentTheme]);
 
-  const themes: any = {
+  const themes = {
       fable_corbeau: { name: 'Le Corbeau et le Renard', emoji: '🦅', knowledge: [ { title: 'Auteur', content: 'Jean de La Fontaine (1621-1695). Fabuliste français reconnu mondialement pour ses Fables.' }, { title: 'La morale', content: '"Tout flatteur vit aux dépens de celui qui l\'écoute." Ne vous laissez pas manipuler par des compliments intéressés.' }, { title: 'Les personnages', content: 'Le Corbeau: naïf et orgueilleux. Le Renard: rusé et calculateur. Représentent les vices et défauts humains.' }, { title: 'Style', content: 'Écrite en vers octosyllabiques. Dialogue vivant et naturel. Ton ironique et bienveillant.' }, { title: 'Enseignement', content: 'Critique de la vanité et de la sottise. Valorise la prudence et l\'intelligence. Les fables enseignent par l\'exemple.' } ] },
       anchoring: { name: 'Séance d\'ancrage hypnotique', emoji: '⚓', knowledge: [ { title: 'Ancrage établi', content: 'Vous avez complété avec succès votre séance d\'ancrage initial. Cet ancrage reste actif et reconnaissable par votre inconscient.' }, { title: 'Accès débloqué', content: 'Vous avez maintenant accès à tous les contenus d\'apprentissage hypnotique de HypnoHistory.' }, { title: 'État hypnotique', content: 'Vous avez exploré la profondeur de votre état hypnotique. Vous savez maintenant à quoi vous attendre lors des séances suivantes.' }, { title: 'Réceptivité', content: 'Votre esprit est maintenant réceptif à l\'apprentissage hypnotique. Les informations s\'intégreront naturellement à votre mémoire.' }, { title: 'Début du voyage', content: 'C\'était votre première étape. Des dizaines de sujets passionnants vous attendent. Continuez votre exploration !' } ] }
   };
@@ -146,30 +142,28 @@ export default function Home() {
   };
   
   const handleInstallApp = async () => {
+    setIsInstallModalOpen(false);
     if (!deferredPrompt) return;
     try {
-        deferredPrompt.prompt();
-        await deferredPrompt.userChoice;
+      deferredPrompt.prompt();
+      await deferredPrompt.userChoice;
     } catch (error) {
-        console.error('PWA installation prompt error:', error);
-    } finally {
-        setDeferredPrompt(null);
-        setIsInstallModalOpen(false);
-        showScreen('theme');
+      console.error('PWA installation prompt error:', error);
+      showScreen('theme');
     }
   };
 
   const handleDismissInstall = () => {
-      setIsInstallModalOpen(false);
-      showScreen('theme');
+    setIsInstallModalOpen(false);
+    showScreen('theme');
   };
 
   const selectTheme = (themeId: keyof typeof themes) => {
     setCurrentTheme(themes[themeId]);
-    showScreen('questionnaire');
     setCurrentStep(1);
+    showScreen('questionnaire');
   };
-
+  
   const startAnchoringOrSession = () => {
     if (!anchoringCompleted) {
       setIsAnchoringSession(true);
@@ -180,11 +174,11 @@ export default function Home() {
 
   return (
     <>
-       <audio
+      <audio
         ref={audioRef}
         src="https://digipad.s3.sbg.io.cloud.ovh.net/1619015/28aafa76b0a6cd368b3c555597e2e888_1_2wspx8y0mha.mp3"
         preload="auto"
-       />
+      />
 
       {isInstallModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0, 0, 0, 0.7)', backdropFilter: 'blur(4px)' }}>
@@ -209,14 +203,21 @@ export default function Home() {
       )}
 
       <div id="home-screen" className={`h-full w-full flex flex-col items-center justify-center p-6 ${screen === 'home' ? '' : 'hidden'}`} style={{ background: 'radial-gradient(ellipse at center, #1e1432 0%, #0d0a14 50%, #050308 100%)' }}>
-        <div className="mb-8 animate-fadeInUp"><Image src="https://i.ibb.co/Z66542nj/Hh.png" alt="HypnoHistory Logo" width={128} height={128} className="object-contain" priority /></div>
+        <div className="mb-8 animate-fadeInUp">
+            <Image src="https://i.ibb.co/Z66542nj/Hh.png" alt="HypnoHistory Logo" width={128} height={128} className="object-contain" priority />
+        </div>
         <h1 className="font-display text-5xl md:text-6xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-200 via-violet-300 to-indigo-200 text-center mb-6 animate-fadeInUp" style={{ animationDelay: '0.2s' }}>HypnoHistory</h1>
         <p className="font-body text-lg md:text-xl text-purple-200/70 text-center max-w-xl mb-16 animate-fadeInUp" style={{ animationDelay: '0.4s' }}>Apprenez l'Histoire en état modifié de conscience</p>
-        <button onClick={handleStartClick} className="group relative px-12 py-4 rounded-full bg-gradient-to-r from-purple-600/80 to-indigo-600/80 text-white font-display text-lg tracking-wide animate-pulse-glow animate-fadeInUp transition-all duration-300 hover:from-purple-500/90 hover:to-indigo-500/90" style={{ animationDelay: '0.6s' }}><span className="relative z-10">Commencer le voyage</span></button>
+        <button onClick={handleStartClick} className="group relative px-12 py-4 rounded-full bg-gradient-to-r from-purple-600/80 to-indigo-600/80 text-white font-display text-lg tracking-wide animate-pulse-glow animate-fadeInUp transition-all duration-300 hover:from-purple-500/90 hover:to-indigo-500/90" style={{ animationDelay: '0.6s' }}>
+            <span className="relative z-10">Commencer le voyage</span>
+        </button>
       </div>
 
       <div id="theme-screen" className={`h-full w-full flex flex-col overflow-auto p-6 ${screen === 'theme' ? '' : 'hidden'}`} style={{ background: 'radial-gradient(ellipse at center, #1e1432 0%, #0d0a14 50%, #050308 100%)' }}>
-        <button onClick={() => showScreen('home')} className="self-start mb-8 flex items-center gap-2 text-purple-300/70 hover:text-purple-200 transition-colors"><svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" /></svg><span className="font-body">Retour</span></button>
+        <button onClick={() => showScreen('home')} className="self-start mb-8 flex items-center gap-2 text-purple-300/70 hover:text-purple-200 transition-colors">
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" /></svg>
+            <span className="font-body">Retour</span>
+        </button>
         <div className="flex-1 flex flex-col items-center justify-center">
           <h2 className="font-display text-4xl md:text-5xl text-purple-100 text-center mb-4">Choisissez votre sujet</h2>
           <p className="text-purple-300/60 text-center mb-12 text-lg max-w-xl">Sélectionnez un personnage ou événement historique</p>
@@ -289,21 +290,28 @@ export default function Home() {
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none"><div className="w-32 h-32 rounded-full border border-purple-400/20 animate-breathe"></div><div className="absolute w-48 h-48 rounded-full border border-purple-400/15 animate-breathe" style={{ animationDelay: '0.5s' }}></div><div className="absolute w-64 h-64 rounded-full border border-purple-400/10 animate-breathe" style={{ animationDelay: '1s' }}></div></div>
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none"><div className="w-4 h-4 rounded-full bg-purple-300 animate-pulse-glow"></div></div>
         <div className="absolute bottom-10 left-1/2 -translate-x-1/2 w-64">
-          <div className="h-1 bg-purple-900/50 rounded-full overflow-hidden"><div id="progress-bar" className="h-full bg-gradient-to-r from-purple-500 to-indigo-500 rounded-full transition-all duration-1000" style={{ width: `${progress}%` }}></div></div>
+          <div className="h-1 bg-purple-900/50 rounded-full overflow-hidden">
+            <div id="progress-bar" className="h-full bg-gradient-to-r from-purple-500 to-indigo-500 rounded-full transition-all duration-1000" style={{ width: `${progress}%` }}></div>
+          </div>
           <p id="phase-label" className="text-purple-400/60 text-sm text-center mt-3">{progress < 100 ? 'Induction...' : 'Retour progressif...'}</p>
         </div>
       </div>
       
       <div id="result-screen" className={`h-full w-full flex flex-col overflow-auto p-6 ${screen === 'result' ? '' : 'hidden'}`} style={{ background: 'radial-gradient(ellipse at center, #1e1432 0%, #0d0a14 50%, #050308 100%)' }}>
         <div className="flex-1 flex flex-col items-center justify-center">
-          <div className="w-16 h-16 rounded-full bg-gradient-to-r from-purple-500/30 to-indigo-500/30 flex items-center justify-center mb-6 animate-fadeInUp"><svg className="w-8 h-8 text-purple-200" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg></div>
+          <div className="w-16 h-16 rounded-full bg-gradient-to-r from-purple-500/30 to-indigo-500/30 flex items-center justify-center mb-6 animate-fadeInUp">
+            <svg className="w-8 h-8 text-purple-200" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+          </div>
           <h2 className="font-display text-3xl md:text-4xl text-purple-100 text-center mb-2 animate-fadeInUp" style={{ animationDelay: '0.2s' }}>Séance terminée</h2>
           <p className="text-purple-300/70 text-lg md:text-xl mb-10 animate-fadeInUp" style={{ animationDelay: '0.3s' }}>{currentTheme?.name}</p>
           <div className="glass-card rounded-2xl p-8 md:p-10 max-w-3xl w-full animate-fadeInUp" style={{ animationDelay: '0.4s' }}>
             <h3 className="font-display text-2xl text-purple-100 mb-8 flex items-center gap-3"><span className="text-3xl">📚</span> Ce que vous savez maintenant</h3>
             <div className="space-y-8 text-purple-200/80 leading-relaxed">
               {currentTheme?.knowledge.map((item: any, index: number) => (
-                <div key={index} className="border-l-2 border-purple-500/40 pl-4"><h4 className="font-display text-lg text-purple-100 mb-2">{item.title}</h4><p>{item.content}</p></div>
+                <div key={index} className="border-l-2 border-purple-500/40 pl-4">
+                  <h4 className="font-display text-lg text-purple-100 mb-2">{item.title}</h4>
+                  <p>{item.content}</p>
+                </div>
               ))}
             </div>
           </div>
