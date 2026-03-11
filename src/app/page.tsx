@@ -69,7 +69,11 @@ export default function Home() {
           setTimeout(() => {
             if (isAnchoringSession) {
               setAnchoringCompleted(true);
-              localStorage.setItem('hypnohistory_anchoring_done', 'true');
+              try {
+                localStorage.setItem('hypnohistory_anchoring_done', 'true');
+              } catch (error) {
+                console.error('Could not write to local storage:', error);
+              }
               setIsAnchoringSession(false);
             }
             showScreen('result');
@@ -113,6 +117,7 @@ export default function Home() {
     } finally {
         setDeferredPrompt(null);
         setIsInstallModalOpen(false);
+        showScreen('theme');
     }
   };
 
