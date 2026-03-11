@@ -6,6 +6,7 @@ import Image from 'next/image';
 export default function Home() {
   const [screen, setScreen] = useState('home');
   const [currentTheme, setCurrentTheme] = useState<any>(null);
+  const [originalTheme, setOriginalTheme] = useState<any>(null);
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
   const [isInstallModalOpen, setIsInstallModalOpen] = useState(false);
   const [anchoringCompleted, setAnchoringCompleted] = useState(false);
@@ -64,9 +65,15 @@ export default function Home() {
             console.error('Could not write to local storage:', error);
           }
           setIsAnchoringSession(false);
+          // Restore original theme and start its session
+          setCurrentTheme(originalTheme);
+          setProgress(0);
+          showScreen('hypnosis');
+        } else {
+          // Normal session ended
+          showScreen('result');
+          setProgress(0);
         }
-        showScreen('result');
-        setProgress(0);
       }, 500);
     };
 
@@ -96,11 +103,7 @@ export default function Home() {
 
           if (elapsed >= sessionDuration) {
             clearInterval(progressInterval);
-            setProgress(100);
-            setTimeout(() => {
-              showScreen('result');
-              setProgress(0);
-            }, 1500);
+            onAudioEnd(); // Use the same end logic
           }
         }, updateInterval);
       }
@@ -119,7 +122,7 @@ export default function Home() {
         clearInterval(progressInterval);
       }
     };
-  }, [screen, isAnchoringSession, currentTheme]);
+  }, [screen, isAnchoringSession, currentTheme, originalTheme]);
 
   const themes = {
       fable_corbeau: { name: 'Le Corbeau et le Renard', emoji: '🦅', knowledge: [ { title: 'Auteur', content: 'Jean de La Fontaine (1621-1695). Fabuliste français reconnu mondialement pour ses Fables.' }, { title: 'La morale', content: '"Tout flatteur vit aux dépens de celui qui l\'écoute." Ne vous laissez pas manipuler par des compliments intéressés.' }, { title: 'Les personnages', content: 'Le Corbeau: naïf et orgueilleux. Le Renard: rusé et calculateur. Représentent les vices et défauts humains.' }, { title: 'Style', content: 'Écrite en vers octosyllabiques. Dialogue vivant et naturel. Ton ironique et bienveillant.' }, { title: 'Enseignement', content: 'Critique de la vanité et de la sottise. Valorise la prudence et l\'intelligence. Les fables enseignent par l\'exemple.' } ] },
@@ -149,8 +152,9 @@ export default function Home() {
       await deferredPrompt.userChoice;
     } catch (error) {
       console.error('PWA installation prompt error:', error);
-      showScreen('theme');
     }
+    // Always proceed to theme selection after attempting install
+    showScreen('theme');
   };
 
   const handleDismissInstall = () => {
@@ -159,7 +163,9 @@ export default function Home() {
   };
 
   const selectTheme = (themeId: keyof typeof themes) => {
-    setCurrentTheme(themes[themeId]);
+    const selected = themes[themeId];
+    setCurrentTheme(selected);
+    setOriginalTheme(selected);
     setCurrentStep(1);
     showScreen('questionnaire');
   };
@@ -224,9 +230,9 @@ export default function Home() {
           <div className="grid grid-cols-1 gap-6 max-w-2xl w-full">
             {Object.keys(themes).filter(t => t !== 'anchoring').map(themeId => (
               <button key={themeId} onClick={() => selectTheme(themeId as keyof typeof themes)} className="glass-card rounded-2xl p-8 text-left hover:border-purple-400/50 transition-all duration-300 group hover:scale-105">
-                <div className="text-5xl mb-4">{themes[themeId].emoji}</div>
-                <h3 className="font-display text-2xl text-purple-100 mb-3 group-hover:text-white transition-colors">{themes[themeId].name}</h3>
-                <p className="text-purple-300/60 text-base">{themes[themeId].knowledge[0].content}</p>
+                <div className="text-5xl mb-4">{themes[themeId as keyof typeof themes].emoji}</div>
+                <h3 className="font-display text-2xl text-purple-100 mb-3 group-hover:text-white transition-colors">{themes[themeId as keyof typeof themes].name}</h3>
+                <p className="text-purple-300/60 text-base">{themes[themeId as keyof typeof themes].knowledge[0].content}</p>
               </button>
             ))}
           </div>
@@ -293,7 +299,7 @@ export default function Home() {
           <div className="h-1 bg-purple-900/50 rounded-full overflow-hidden">
             <div id="progress-bar" className="h-full bg-gradient-to-r from-purple-500 to-indigo-500 rounded-full transition-all duration-1000" style={{ width: `${progress}%` }}></div>
           </div>
-          <p id="phase-label" className="text-purple-400/60 text-sm text-center mt-3">{progress < 100 ? 'Induction...' : 'Retour progressif...'}</p>
+          <p id="phase-label" className="text-purple-400/60 text-sm text-center mt-3">{progress < 100 ? 'Séance en cours...' : 'Retour progressif...'}</p>
         </div>
       </div>
       
