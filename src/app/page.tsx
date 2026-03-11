@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import Image from 'next/image';
+import { Anchor, HelpCircle, X } from 'lucide-react';
 
 export default function Home() {
   const [screen, setScreen] = useState('home');
@@ -14,6 +15,8 @@ export default function Home() {
   const [progress, setProgress] = useState(0);
   const [currentStep, setCurrentStep] = useState(1);
   const audioRef = useRef<HTMLAudioElement>(null);
+  const [isFaqOpen, setIsFaqOpen] = useState(false);
+  const [isHypnosisCheckOpen, setIsHypnosisCheckOpen] = useState(false);
 
   // Effect for PWA and checking local storage
   useEffect(() => {
@@ -58,19 +61,8 @@ export default function Home() {
       setProgress(100);
       setTimeout(() => {
         if (isAnchoringSession) {
-          setAnchoringCompleted(true);
-          try {
-            localStorage.setItem('hypnohistory_anchoring_done', 'true');
-          } catch (error) {
-            console.error('Could not write to local storage:', error);
-          }
-          setIsAnchoringSession(false);
-          // Restore original theme and start its session
-          setCurrentTheme(originalTheme);
-          setProgress(0);
-          showScreen('hypnosis');
+          setIsHypnosisCheckOpen(true);
         } else {
-          // Normal session ended
           showScreen('result');
           setProgress(0);
         }
@@ -85,28 +77,10 @@ export default function Home() {
     };
     
     if (screen === 'hypnosis') {
-      if (isAnchoringSession) {
         if (!audio) return;
         audio.addEventListener('ended', onAudioEnd);
         audio.addEventListener('timeupdate', updateAudioProgress);
         audio.play().catch(e => console.error("Error playing audio:", e));
-      } else if (currentTheme) {
-        // Dummy progress for regular sessions as they have no audio yet.
-        const sessionDuration = 5000;
-        const updateInterval = 100;
-        let startTime = Date.now();
-
-        progressInterval = setInterval(() => {
-          const elapsed = Date.now() - startTime;
-          const currentProgress = Math.min((elapsed / sessionDuration) * 100, 100);
-          setProgress(currentProgress);
-
-          if (elapsed >= sessionDuration) {
-            clearInterval(progressInterval);
-            onAudioEnd(); // Use the same end logic
-          }
-        }, updateInterval);
-      }
     }
 
     return () => {
@@ -126,7 +100,7 @@ export default function Home() {
 
   const themes = {
       fable_corbeau: { name: 'Le Corbeau et le Renard', emoji: '🦅', knowledge: [ { title: 'Auteur', content: 'Jean de La Fontaine (1621-1695). Fabuliste français reconnu mondialement pour ses Fables.' }, { title: 'La morale', content: '"Tout flatteur vit aux dépens de celui qui l\'écoute." Ne vous laissez pas manipuler par des compliments intéressés.' }, { title: 'Les personnages', content: 'Le Corbeau: naïf et orgueilleux. Le Renard: rusé et calculateur. Représentent les vices et défauts humains.' }, { title: 'Style', content: 'Écrite en vers octosyllabiques. Dialogue vivant et naturel. Ton ironique et bienveillant.' }, { title: 'Enseignement', content: 'Critique de la vanité et de la sottise. Valorise la prudence et l\'intelligence. Les fables enseignent par l\'exemple.' } ] },
-      anchoring: { name: 'Séance d\'ancrage hypnotique', emoji: '⚓', knowledge: [ { title: 'Ancrage établi', content: 'Vous avez complété avec succès votre séance d\'ancrage initial. Cet ancrage reste actif et reconnaissable par votre inconscient.' }, { title: 'Accès débloqué', content: 'Vous avez maintenant accès à tous les contenus d\'apprentissage hypnotique de HypnoHistory.' }, { title: 'État hypnotique', content: 'Vous avez exploré la profondeur de votre état hypnotique. Vous savez maintenant à quoi vous attendre lors des séances suivantes.' }, { title: 'Réceptivité', content: 'Votre esprit est maintenant réceptif à l\'apprentissage hypnotique. Les informations s\'intégreront naturellement à votre mémoire.' }, { title: 'Début du voyage', content: 'C\'était votre première étape. Des dizaines de sujets passionnants vous attendent. Continuez votre exploration !' } ] }
+      anchoring: { name: 'Séance d\'ancrage hypnotique', emoji: '⚓', audioUrl: 'https://digipad.s3.sbg.io.cloud.ovh.net/1619015/28aafa76b0a6cd368b3c555597e2e888_1_2wspx8y0mha.mp3', knowledge: [ { title: 'Ancrage établi', content: 'Vous avez complété avec succès votre séance d\'ancrage initial. Cet ancrage reste actif et reconnaissable par votre inconscient.' }, { title: 'Accès débloqué', content: 'Vous avez maintenant accès à tous les contenus d\'apprentissage hypnotique de HypnoHistory.' }, { title: 'État hypnotique', content: 'Vous avez exploré la profondeur de votre état hypnotique. Vous savez maintenant à quoi vous attendre lors des séances suivantes.' }, { title: 'Réceptivité', content: 'Votre esprit est maintenant réceptif à l\'apprentissage hypnotique. Les informations s\'intégreront naturellement à votre mémoire.' }, { title: 'Début du voyage', content: 'C\'était votre première étape. Des dizaines de sujets passionnants vous attendent. Continuez votre exploration !' } ] }
   };
 
   const showScreen = (screenName: string) => {
@@ -153,7 +127,6 @@ export default function Home() {
     } catch (error) {
       console.error('PWA installation prompt error:', error);
     }
-    // Always proceed to theme selection after attempting install
     showScreen('theme');
   };
 
@@ -165,7 +138,7 @@ export default function Home() {
   const selectTheme = (themeId: keyof typeof themes) => {
     const selected = themes[themeId];
     setCurrentTheme(selected);
-    setOriginalTheme(selected);
+    setOriginalTheme(selected); // Keep track of what the user chose
     setCurrentStep(1);
     showScreen('questionnaire');
   };
@@ -173,18 +146,76 @@ export default function Home() {
   const startAnchoringOrSession = () => {
     if (!anchoringCompleted) {
       setIsAnchoringSession(true);
-      setCurrentTheme(themes.anchoring); // Set theme for anchoring session
+      setCurrentTheme(themes.anchoring);
+      if (audioRef.current) {
+        audioRef.current.src = themes.anchoring.audioUrl;
+        audioRef.current.load();
+      }
+    } else {
+        setIsAnchoringSession(false);
+        setCurrentTheme(originalTheme);
+         if (audioRef.current && originalTheme?.audioUrl) {
+            audioRef.current.src = originalTheme.audioUrl;
+            audioRef.current.load();
+        } else if (audioRef.current) {
+            audioRef.current.removeAttribute('src');
+        }
     }
     showScreen('hypnosis');
   };
 
+  const startManualAnchoring = () => {
+    setIsAnchoringSession(true);
+    setCurrentTheme(themes.anchoring);
+    setOriginalTheme(null);
+    if (audioRef.current) {
+        audioRef.current.src = themes.anchoring.audioUrl;
+        audioRef.current.load();
+    }
+    showScreen('hypnosis');
+  };
+
+  const handleHypnosisCheckYes = () => {
+    setAnchoringCompleted(true);
+    try {
+        localStorage.setItem('hypnohistory_anchoring_done', 'true');
+    } catch (error) {
+        console.error('Could not write to local storage:', error);
+    }
+    setIsHypnosisCheckOpen(false);
+    setIsAnchoringSession(false);
+    
+    if (originalTheme && originalTheme.name !== themes.anchoring.name) {
+        // User was trying to access content, let them proceed
+        setCurrentTheme(originalTheme);
+        setProgress(0);
+        showScreen('hypnosis');
+    } else {
+        // User did a manual anchoring session
+        showScreen('theme');
+    }
+  };
+
+  const handleHypnosisCheckNo = () => {
+    setIsHypnosisCheckOpen(false);
+    setIsAnchoringSession(false);
+    alert("Ce n'est pas grave. L'hypnose est un état naturel et la relaxation viendra avec la pratique. N'hésitez pas à refaire la séance d'ancrage lorsque vous serez dans un environnement calme pour profiter pleinement de l'expérience.");
+    showScreen('home');
+  };
+
+
   return (
     <>
-      <audio
-        ref={audioRef}
-        src="https://digipad.s3.sbg.io.cloud.ovh.net/1619015/28aafa76b0a6cd368b3c555597e2e888_1_2wspx8y0mha.mp3"
-        preload="auto"
-      />
+      <audio ref={audioRef} preload="auto" />
+      
+      <div className="fixed top-4 right-4 z-50 flex gap-3">
+        <button onClick={startManualAnchoring} title="Refaire la séance d'ancrage" className="p-3 rounded-full bg-purple-500/20 text-purple-200 hover:bg-purple-500/40 transition-colors">
+            <Anchor className="w-6 h-6" />
+        </button>
+        <button onClick={() => setIsFaqOpen(true)} title="F.A.Q." className="p-3 rounded-full bg-purple-500/20 text-purple-200 hover:bg-purple-500/40 transition-colors">
+            <HelpCircle className="w-6 h-6" />
+        </button>
+    </div>
 
       {isInstallModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0, 0, 0, 0.7)', backdropFilter: 'blur(4px)' }}>
@@ -194,7 +225,7 @@ export default function Home() {
                 <svg className="w-8 h-8 text-purple-200" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
               </div>
               <h3 className="font-display text-2xl text-purple-100 mb-2">Installer l'application</h3>
-              <p className="text-purple-300/70">Accédez à HypnoHistory directement depuis votre bureau ou écran d'accueil</p>
+              <p className="text-purple-300/70">Accédez à HypnoHistory directement depuis votre bureau ou écran d'accueil.</p>
             </div>
             <div className="space-y-3 flex flex-col">
               <button onClick={handleInstallApp} className="w-full px-6 py-3 rounded-full bg-gradient-to-r from-purple-600/80 to-indigo-600/80 text-white font-display hover:from-purple-500/90 hover:to-indigo-500/90 transition-all duration-300">
@@ -207,6 +238,58 @@ export default function Home() {
           </div>
         </div>
       )}
+
+      {isFaqOpen && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4" style={{ background: 'rgba(0, 0, 0, 0.7)', backdropFilter: 'blur(4px)' }}>
+            <div className="glass-card rounded-3xl p-8 max-w-2xl w-full animate-fadeInUp relative overflow-y-auto max-h-[90vh]">
+                <button onClick={() => setIsFaqOpen(false)} className="absolute top-4 right-4 text-purple-200/70 hover:text-purple-100 z-10">
+                    <X className="w-7 h-7" />
+                </button>
+                <h3 className="font-display text-3xl text-purple-100 mb-8 text-center">F.A.Q. - Questions Fréquentes</h3>
+                <div className="space-y-6 text-purple-200/90">
+                    <div>
+                        <h4 className="font-bold text-lg text-purple-100 mb-2">Qu'est-ce que l'hypnose ?</h4>
+                        <p className="leading-relaxed">L'hypnose est un état de conscience modifié, tout à fait naturel, que vous expérimentez plusieurs fois par jour sans même vous en rendre compte : par exemple, lorsque vous êtes absorbé par un film, un livre, ou lorsque vous êtes "dans la lune". Ce n'est ni du sommeil, ni une perte de contrôle. C'est un état de grande concentration intérieure où votre esprit critique est mis en veille, ce qui vous rend plus réceptif aux suggestions positives et à l'apprentissage.</p>
+                    </div>
+                     <div>
+                        <h4 className="font-bold text-lg text-purple-100 mb-2">Est-ce que ça marche sur tout le monde ?</h4>
+                        <p className="leading-relaxed">Oui, car tout le monde est capable d'entrer dans cet état naturel. Cependant, la profondeur et la rapidité pour y entrer peuvent varier d'une personne à l'autre et même d'un jour à l'autre. La clé est le lâcher-prise et l'envie de jouer le jeu. Plus vous pratiquerez, plus il sera facile et rapide d'entrer dans un état de relaxation propice à l'apprentissage.</p>
+                    </div>
+                     <div>
+                        <h4 className="font-bold text-lg text-purple-100 mb-2">Vais-je perdre le contrôle ?</h4>
+                        <p className="leading-relaxed">Absolument pas. C'est un mythe véhiculé par l'hypnose de spectacle. En état d'hypnose, vous restez conscient de ce qui se passe et vous gardez le contrôle. Vous ne ferez jamais rien qui aille contre vos valeurs. Vous pouvez d'ailleurs décider de sortir de cet état à tout moment si vous le souhaitez.</p>
+                    </div>
+                     <div>
+                        <h4 className="font-bold text-lg text-purple-100 mb-2">Comment fonctionne l'apprentissage sous hypnose ?</h4>
+                        <p className="leading-relaxed">En état d'hypnose, votre cerveau ondes cérébrales ralentissent, ouvrant un accès privilégié à votre subconscient. Les informations (dates, faits, concepts) présentées sous forme d'histoires et de métaphores sont alors absorbées plus facilement et durablement, sans le filtre du mental conscient. C'est un peu comme apprendre en rêvant, de manière intuitive et sans effort.</p>
+                    </div>
+                     <div>
+                        <h4 className="font-bold text-lg text-purple-100 mb-2">Que faire si je ne me sens pas "hypnotisé" ?</h4>
+                        <p className="leading-relaxed">Ne vous focalisez pas sur l'idée de "vous sentir hypnotisé". Cherchez plutôt la relaxation. Si votre esprit vagabonde, c'est normal. Ramenez simplement et doucement votre attention sur la voix et la musique. La séance d'ancrage est conçue pour vous apprendre à entrer dans cet état. N'hésitez pas à la refaire plusieurs fois, dans un endroit calme et à un moment où vous ne serez pas dérangé.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+      )}
+
+      {isHypnosisCheckOpen && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4" style={{ background: 'rgba(0, 0, 0, 0.7)', backdropFilter: 'blur(4px)' }}>
+            <div className="glass-card rounded-3xl p-8 max-w-md w-full animate-fadeInUp">
+                <div className="text-center mb-6">
+                    <h3 className="font-display text-2xl text-purple-100 mb-2">Vérification de la séance</h3>
+                    <p className="text-purple-300/70">Avez-vous eu l'impression d'entrer dans un état de relaxation profonde ou d'hypnose ?</p>
+                </div>
+                <div className="space-y-3 flex flex-col">
+                    <button onClick={handleHypnosisCheckYes} className="w-full px-6 py-3 rounded-full bg-gradient-to-r from-green-600/80 to-emerald-600/80 text-white font-display transition-all duration-300">
+                        Oui, je me suis senti détendu
+                    </button>
+                    <button onClick={handleHypnosisCheckNo} className="w-full px-6 py-3 rounded-full border border-red-400/30 text-red-200 font-display hover:bg-red-500/20 transition-all duration-300">
+                        Non, pas vraiment
+                    </button>
+                </div>
+            </div>
+        </div>
+    )}
 
       <div id="home-screen" className={`h-full w-full flex flex-col items-center justify-center p-6 ${screen === 'home' ? '' : 'hidden'}`} style={{ background: 'radial-gradient(ellipse at center, #1e1432 0%, #0d0a14 50%, #050308 100%)' }}>
         <div className="mb-8 animate-fadeInUp">
@@ -280,7 +363,7 @@ export default function Home() {
             <div id="step-anchoring-check" className="w-full glass-card rounded-2xl p-8 md:p-10 animate-fadeInUp" style={{ animationDelay: '0.2s' }}>
                 <div className="flex items-center gap-4 mb-6"><div className="w-10 h-10 rounded-full bg-purple-500/30 flex items-center justify-center text-purple-200 font-display font-bold">4</div><h2 className="font-display text-2xl md:text-3xl text-purple-100">Vérification d'ancrage</h2></div>
                 <div className="space-y-6">
-                    <p className="text-purple-100 text-lg leading-relaxed">{anchoringCompleted ? 'Vous êtes prêt à explorer ce sujet !' : 'C\'est votre première utilisation ! Vous devez d\'abord suivre une séance d\'ancrage pour accéder au contenu.'}</p>
+                    <p className="text-purple-100 text-lg leading-relaxed">{anchoringCompleted ? 'Votre ancrage est actif. Vous êtes prêt à explorer ce sujet !' : 'C\'est votre première utilisation ! Vous devez d\'abord suivre une séance d\'ancrage pour accéder au contenu.'}</p>
                     <div className="space-y-3 flex flex-col">
                         <button onClick={startAnchoringOrSession} className="w-full px-6 py-4 rounded-full bg-gradient-to-r from-purple-600/80 to-indigo-600/80 text-white font-display hover:from-purple-500/90 hover:to-indigo-500/90 transition-all duration-300">{anchoringCompleted ? 'Continuer vers la séance' : 'Commencer la séance d\'ancrage'}</button>
                         <button onClick={() => setCurrentStep(currentStep - 1)} className="w-full px-6 py-4 rounded-full border border-purple-400/30 text-purple-200 font-display hover:bg-purple-500/20 transition-all duration-300">Revenir en arrière</button>
