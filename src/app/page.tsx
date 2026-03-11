@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState, useEffect } from 'react';
@@ -8,6 +7,7 @@ export default function Home() {
   const [screen, setScreen] = useState('home');
   const [currentTheme, setCurrentTheme] = useState<any>(null);
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+  const [isInstallModalOpen, setIsInstallModalOpen] = useState(false);
   const [anchoringCompleted, setAnchoringCompleted] = useState(false);
   const [currentStep, setCurrentStep] = useState(1);
   const [isAnchoringSession, setIsAnchoringSession] = useState(false);
@@ -88,22 +88,35 @@ export default function Home() {
 
   const showScreen = (screenName: string) => setScreen(screenName);
 
-  const handleStartClick = async () => {
+  const handleStartClick = () => {
     if (deferredPrompt) {
-      try {
-        deferredPrompt.prompt();
-        const { outcome } = await deferredPrompt.userChoice;
-        setDeferredPrompt(null);
-        if (outcome === 'dismissed') {
-          showScreen('theme');
-        }
-      } catch (error) {
-        console.error('PWA installation prompt error:', error);
-        showScreen('theme');
-      }
+      setIsInstallModalOpen(true);
     } else {
       showScreen('theme');
     }
+  };
+  
+  const handleInstallApp = async () => {
+    if (!deferredPrompt) return;
+    try {
+        deferredPrompt.prompt();
+        const { outcome } = await deferredPrompt.userChoice;
+        if (outcome === 'accepted') {
+            console.log('User accepted the install prompt');
+        } else {
+            console.log('User dismissed the install prompt');
+        }
+    } catch (error) {
+        console.error('PWA installation prompt error:', error);
+    } finally {
+        setDeferredPrompt(null);
+        setIsInstallModalOpen(false);
+    }
+  };
+
+  const handleDismissInstall = () => {
+      setIsInstallModalOpen(false);
+      showScreen('theme');
   };
 
   const selectTheme = (themeId: keyof typeof themes) => {
@@ -183,6 +196,28 @@ export default function Home() {
 
   return (
     <>
+       {isInstallModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0, 0, 0, 0.7)', backdropFilter: 'blur(4px)' }}>
+          <div className="glass-card rounded-3xl p-8 max-w-md w-full animate-fadeInUp">
+            <div className="text-center mb-6">
+              <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gradient-to-r from-purple-500/30 to-indigo-500/30 flex items-center justify-center">
+                <svg className="w-8 h-8 text-purple-200" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+              </div>
+              <h3 className="font-display text-2xl text-purple-100 mb-2">Installer l'application</h3>
+              <p className="text-purple-300/70">Accédez à HypnoHistory directement depuis votre bureau ou écran d'accueil</p>
+            </div>
+            <div className="space-y-3 flex flex-col">
+              <button onClick={handleInstallApp} className="w-full px-6 py-3 rounded-full bg-gradient-to-r from-purple-600/80 to-indigo-600/80 text-white font-display hover:from-purple-500/90 hover:to-indigo-500/90 transition-all duration-300">
+                Installer maintenant
+              </button>
+              <button onClick={handleDismissInstall} className="w-full px-6 py-3 rounded-full border border-purple-400/30 text-purple-200 font-display hover:bg-purple-500/20 transition-all duration-300">
+                Plus tard
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div id="home-screen" className={`h-full w-full flex flex-col items-center justify-center p-6 ${screen === 'home' ? '' : 'hidden'}`} style={{ background: 'radial-gradient(ellipse at center, #1e1432 0%, #0d0a14 50%, #050308 100%)' }}>
         <div className="mb-8 animate-fadeInUp"><Image src="https://i.ibb.co/Z66542nj/Hh.png" alt="HypnoHistory Logo" width={128} height={128} className="object-contain" priority /></div>
         <h1 className="font-display text-5xl md:text-6xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-200 via-violet-300 to-indigo-200 text-center mb-6 animate-fadeInUp" style={{ animationDelay: '0.2s' }}>HypnoHistory</h1>
@@ -253,5 +288,3 @@ export default function Home() {
     </>
   );
 }
-
-    
