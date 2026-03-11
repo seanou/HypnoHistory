@@ -9,7 +9,6 @@ export default function Home() {
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
   const [isInstallModalOpen, setIsInstallModalOpen] = useState(false);
   const [anchoringCompleted, setAnchoringCompleted] = useState(false);
-  const [currentStep, setCurrentStep] = useState(1);
   const [isAnchoringSession, setIsAnchoringSession] = useState(false);
   const [progress, setProgress] = useState(0);
   const audioRef = useRef<HTMLAudioElement>(null);
@@ -40,7 +39,9 @@ export default function Home() {
 
     // Local storage setup
     try {
-        setAnchoringCompleted(localStorage.getItem('hypnohistory_anchoring_done') === 'true');
+        if (typeof window !== 'undefined') {
+            setAnchoringCompleted(localStorage.getItem('hypnohistory_anchoring_done') === 'true');
+        }
     } catch (error) {
         console.error('Could not access local storage:', error);
     }
@@ -54,7 +55,7 @@ export default function Home() {
   // Effect for the anchoring audio session
   useEffect(() => {
     const audio = audioRef.current;
-    if (!audio) return;
+    let progressInterval: NodeJS.Timeout | undefined;
 
     const onAudioEnd = () => {
       setProgress(100);
@@ -72,56 +73,55 @@ export default function Home() {
     };
 
     const updateProgress = () => {
-      const currentProgress = audio.duration ? (audio.currentTime / audio.duration) * 100 : 0;
-      setProgress(currentProgress);
-    };
-
-    if (isAnchoringSession && screen === 'hypnosis') {
-      audio.addEventListener('ended', onAudioEnd);
-      audio.addEventListener('timeupdate', updateProgress);
-      audio.play().catch(e => console.error("Error playing audio:", e));
-    }
-
-    return () => {
-      audio.removeEventListener('ended', onAudioEnd);
-      audio.removeEventListener('timeupdate', updateProgress);
-      if (audio && !audio.paused) {
-        audio.pause();
-        audio.currentTime = 0;
+      if (audio && audio.duration) {
+        const currentProgress = (audio.currentTime / audio.duration) * 100;
+        setProgress(currentProgress);
       }
     };
-  }, [isAnchoringSession, screen]);
+    
+    if (screen === 'hypnosis') {
+      if (isAnchoringSession) {
+        if (!audio) return;
+        audio.addEventListener('ended', onAudioEnd);
+        audio.addEventListener('timeupdate', updateProgress);
+        audio.play().catch(e => console.error("Error playing audio:", e));
+      } else if (currentTheme) {
+        // Dummy progress for regular sessions as they have no audio yet.
+        const sessionDuration = 5000;
+        const updateInterval = 100;
+        let startTime = Date.now();
 
-  // Effect for the regular (non-anchoring) hypnosis session
-  useEffect(() => {
-    let progressInterval: NodeJS.Timeout | undefined;
+        progressInterval = setInterval(() => {
+          const elapsed = Date.now() - startTime;
+          const currentProgress = Math.min((elapsed / sessionDuration) * 100, 100);
+          setProgress(currentProgress);
 
-    if (screen === 'hypnosis' && !isAnchoringSession && currentTheme) {
-      const sessionDuration = 5000;
-      const updateInterval = 100;
-      let startTime = Date.now();
-
-      progressInterval = setInterval(() => {
-        const elapsed = Date.now() - startTime;
-        const currentProgress = Math.min((elapsed / sessionDuration) * 100, 100);
-        setProgress(currentProgress);
-
-        if (elapsed >= sessionDuration) {
-          clearInterval(progressInterval);
-          setProgress(100);
-          
-          setTimeout(() => {
-            showScreen('result');
-            setProgress(0);
-          }, 1500);
-        }
-      }, updateInterval);
+          if (elapsed >= sessionDuration) {
+            clearInterval(progressInterval);
+            setProgress(100);
+            setTimeout(() => {
+              showScreen('result');
+              setProgress(0);
+            }, 1500);
+          }
+        }, updateInterval);
+      }
     }
 
     return () => {
-      if (progressInterval) clearInterval(progressInterval);
+      if (audio) {
+        audio.removeEventListener('ended', onAudioEnd);
+        audio.removeEventListener('timeupdate', updateProgress);
+        if (!audio.paused) {
+          audio.pause();
+          audio.currentTime = 0;
+        }
+      }
+      if (progressInterval) {
+        clearInterval(progressInterval);
+      }
     };
-  }, [screen, isAnchoringSession, currentTheme]);
+  }, [isAnchoringSession, screen, currentTheme]);
 
   const themes: any = {
       fable_corbeau: { name: 'Le Corbeau et le Renard', emoji: '🦅', knowledge: [ { title: 'Auteur', content: 'Jean de La Fontaine (1621-1695). Fabuliste français reconnu mondialement pour ses Fables.' }, { title: 'La morale', content: '"Tout flatteur vit aux dépens de celui qui l\'écoute." Ne vous laissez pas manipuler par des compliments intéressés.' }, { title: 'Les personnages', content: 'Le Corbeau: naïf et orgueilleux. Le Renard: rusé et calculateur. Représentent les vices et défauts humains.' }, { title: 'Style', content: 'Écrite en vers octosyllabiques. Dialogue vivant et naturel. Ton ironique et bienveillant.' }, { title: 'Enseignement', content: 'Critique de la vanité et de la sottise. Valorise la prudence et l\'intelligence. Les fables enseignent par l\'exemple.' } ] },
@@ -129,12 +129,22 @@ export default function Home() {
   };
 
   const showScreen = (screenName: string) => setScreen(screenName);
+  
+  const proceedToApp = () => {
+    if (!anchoringCompleted) {
+      setIsAnchoringSession(true);
+      setCurrentTheme(themes.anchoring);
+      showScreen('hypnosis');
+    } else {
+      showScreen('theme');
+    }
+  };
 
   const handleStartClick = () => {
     if (deferredPrompt) {
       setIsInstallModalOpen(true);
     } else {
-      showScreen('theme');
+      proceedToApp();
     }
   };
   
@@ -153,88 +163,18 @@ export default function Home() {
     } finally {
         setDeferredPrompt(null);
         setIsInstallModalOpen(false);
-        showScreen('theme');
+        proceedToApp();
     }
   };
 
   const handleDismissInstall = () => {
       setIsInstallModalOpen(false);
-      showScreen('theme');
+      proceedToApp();
   };
 
   const selectTheme = (themeId: keyof typeof themes) => {
     setCurrentTheme(themes[themeId]);
-    setCurrentStep(1);
-    showScreen('questionnaire');
-  };
-
-  const startAnchoringOrSession = () => {
-    if (anchoringCompleted) {
-      showScreen('prep');
-    } else {
-      setIsAnchoringSession(true);
-      setCurrentTheme(themes.anchoring);
-      showScreen('hypnosis');
-    }
-  };
-
-  const renderStep = () => {
-    switch (currentStep) {
-      case 1:
-        return (
-          <div id="step-headphones" className="w-full glass-card rounded-2xl p-8 md:p-10 animate-fadeInUp">
-            <div className="flex items-center gap-4 mb-6"><div className="w-10 h-10 rounded-full bg-purple-500/30 flex items-center justify-center text-purple-200 font-display font-bold">1</div><h2 className="font-display text-2xl md:text-3xl text-purple-100">Préparation audio</h2></div>
-            <div className="space-y-6">
-              <div className="flex items-center gap-4"><svg className="w-12 h-12 text-purple-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" /></svg>
-                <div><p className="text-purple-100 text-lg font-semibold">Mettez vos écouteurs ou casque</p><p className="text-purple-300/60">La musique et les voix guidées sont essentielles pour cette expérience</p></div>
-              </div>
-              <button onClick={() => setCurrentStep(2)} className="w-full px-6 py-4 rounded-full bg-gradient-to-r from-purple-600/80 to-indigo-600/80 text-white font-display hover:from-purple-500/90 hover:to-indigo-500/90 transition-all duration-300">J'ai mis mes écouteurs</button>
-            </div>
-          </div>
-        );
-      case 2:
-        return (
-          <div id="step-comfort" className="w-full glass-card rounded-2xl p-8 md:p-10 animate-fadeInUp" style={{ animationDelay: '0.2s' }}>
-            <div className="flex items-center gap-4 mb-6"><div className="w-10 h-10 rounded-full bg-purple-500/30 flex items-center justify-center text-purple-200 font-display font-bold">2</div><h2 className="font-display text-2xl md:text-3xl text-purple-100">Installez-vous confortablement</h2></div>
-            <div className="space-y-6">
-              <div className="space-y-4">
-                <div className="flex items-center gap-4"><svg className="w-10 h-10 text-purple-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M17.59 11H2m18.67 0h.01M6 14h4v7H6z" /></svg><p className="text-purple-200">Asseyez-vous ou allongez-vous dans une position confortable</p></div>
-                <div className="flex items-center gap-4"><svg className="w-10 h-10 text-purple-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" /></svg><p className="text-purple-200">Créez une ambiance calme et sombre si possible</p></div>
-                <div className="flex items-center gap-4"><svg className="w-10 h-10 text-purple-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M18.364 5.636l-3.536 3.536m0 5.172l3.536 3.536M9.172 9.172L5.636 5.636m3.536 9.172l-3.536 3.536M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-5 0a4 4 0 11-8 0 4 4 0 018 0z" /></svg><p className="text-purple-200">Éteignez les notifications et mettez votre téléphone en silencieux</p></div>
-              </div>
-              <button onClick={() => setCurrentStep(3)} className="w-full px-6 py-4 rounded-full bg-gradient-to-r from-purple-600/80 to-indigo-600/80 text-white font-display hover:from-purple-500/90 hover:to-indigo-500/90 transition-all duration-300">Je suis prêt</button>
-            </div>
-          </div>
-        );
-      case 3:
-        return (
-          <div id="step-comfort-check" className="w-full glass-card rounded-2xl p-8 md:p-10 animate-fadeInUp" style={{ animationDelay: '0.2s' }}>
-            <div className="flex items-center gap-4 mb-6"><div className="w-10 h-10 rounded-full bg-purple-500/30 flex items-center justify-center text-purple-200 font-display font-bold">3</div><h2 className="font-display text-2xl md:text-3xl text-purple-100">Vérification finale</h2></div>
-            <div className="space-y-6">
-              <p className="text-purple-100 text-lg">Êtes-vous certain d'être prêt à commencer ?</p>
-              <div className="space-y-3 flex flex-col">
-                <button onClick={() => setCurrentStep(4)} className="w-full px-6 py-4 rounded-full bg-gradient-to-r from-purple-600/80 to-indigo-600/80 text-white font-display hover:from-purple-500/90 hover:to-indigo-500/90 transition-all duration-300">Oui, je suis prêt ✨</button>
-                <button onClick={() => setCurrentStep(currentStep - 1)} className="w-full px-6 py-4 rounded-full border border-purple-400/30 text-purple-200 font-display hover:bg-purple-500/20 transition-all duration-300">Revenir en arrière</button>
-              </div>
-            </div>
-          </div>
-        );
-      case 4:
-        return (
-          <div id="step-anchoring-check" className="w-full glass-card rounded-2xl p-8 md:p-10 animate-fadeInUp" style={{ animationDelay: '0.2s' }}>
-            <div className="flex items-center gap-4 mb-6"><div className="w-10 h-10 rounded-full bg-purple-500/30 flex items-center justify-center text-purple-200 font-display font-bold">4</div><h2 className="font-display text-2xl md:text-3xl text-purple-100">Vérification d'ancrage</h2></div>
-            <div className="space-y-6">
-              <p className="text-purple-100 text-lg leading-relaxed">{anchoringCompleted ? 'Vous êtes prêt à explorer ce sujet !' : "C'est votre première utilisation ! Vous devez d'abord suivre une séance d'ancrage pour accéder au contenu."}</p>
-              <div className="space-y-3 flex flex-col">
-                <button onClick={startAnchoringOrSession} className="w-full px-6 py-4 rounded-full bg-gradient-to-r from-purple-600/80 to-indigo-600/80 text-white font-display hover:from-purple-500/90 hover:to-indigo-500/90 transition-all duration-300">{anchoringCompleted ? 'Continuer vers la séance' : "Commencer la séance d'ancrage"}</button>
-                <button onClick={() => setCurrentStep(currentStep - 1)} className="w-full px-6 py-4 rounded-full border border-purple-400/30 text-purple-200 font-display hover:bg-purple-500/20 transition-all duration-300">Revenir en arrière</button>
-              </div>
-            </div>
-          </div>
-        );
-      default:
-        return null;
-    }
+    showScreen('hypnosis');
   };
 
   return (
@@ -287,20 +227,6 @@ export default function Home() {
               </button>
             ))}
           </div>
-        </div>
-      </div>
-      
-      <div id="questionnaire-screen" className={`h-full w-full flex flex-col overflow-auto p-6 ${screen === 'questionnaire' ? '' : 'hidden'}`} style={{ background: 'radial-gradient(ellipse at center, #1e1432 0%, #0d0a14 50%, #050308 100%)' }}>
-        <button onClick={() => showScreen('theme')} className="self-start mb-8 flex items-center gap-2 text-purple-300/70 hover:text-purple-200 transition-colors"><svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" /></svg><span className="font-body">Retour</span></button>
-        <div className="flex-1 flex flex-col items-center justify-center max-w-2xl mx-auto">{renderStep()}</div>
-      </div>
-
-      <div id="prep-screen" className={`h-full w-full flex flex-col items-center justify-center p-6 overflow-auto ${screen === 'prep' ? '' : 'hidden'}`} style={{ background: 'radial-gradient(ellipse at center, #1e1432 0%, #0d0a14 50%, #050308 100%)' }}>
-        <div className="max-w-lg text-center">
-          <div className="w-20 h-20 mx-auto mb-8 rounded-full bg-purple-500/20 flex items-center justify-center animate-breathe"><svg className="w-10 h-10 text-purple-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /> <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg></div>
-          <h2 className="font-display text-3xl md:text-4xl text-purple-100 mb-6">Préparation à la séance</h2>
-          <p className="text-purple-200/80 text-xl mb-12">Sujet : {currentTheme?.name}</p>
-          <button onClick={() => showScreen('hypnosis')} className="px-10 py-4 rounded-full bg-gradient-to-r from-purple-600/80 to-indigo-600/80 text-white font-display text-lg tracking-wide animate-pulse-glow transition-all duration-300 hover:from-purple-500/90 hover:to-indigo-500/90">Commencer la séance</button>
         </div>
       </div>
       
