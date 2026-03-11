@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useEffect } from 'react';
@@ -21,9 +22,6 @@ export default function Home() {
     
     const handleAppInstalled = () => {
       setDeferredPrompt(null);
-      if (screen === 'install') {
-        showScreen('theme');
-      }
     };
     window.addEventListener('appinstalled', handleAppInstalled);
 
@@ -31,7 +29,7 @@ export default function Home() {
       window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
       window.removeEventListener('appinstalled', handleAppInstalled);
     };
-  }, [screen]);
+  }, []);
 
   useEffect(() => {
     setAnchoringCompleted(localStorage.getItem('hypnohistory_anchoring_done') === 'true');
@@ -77,24 +75,22 @@ export default function Home() {
 
   const showScreen = (screenName: string) => setScreen(screenName);
 
-  const handleStartClick = () => deferredPrompt ? showScreen('install') : showScreen('theme');
-
-  const installApp = async () => {
-    if (!deferredPrompt) return showScreen('theme');
-    try {
-      deferredPrompt.prompt();
-      await deferredPrompt.userChoice;
-      setDeferredPrompt(null);
-      showScreen('theme');
-    } catch (e) {
-      console.error('Erreur installation:', e);
+  const handleStartClick = async () => {
+    if (deferredPrompt) {
+      try {
+        deferredPrompt.prompt();
+        const { outcome } = await deferredPrompt.userChoice;
+        setDeferredPrompt(null);
+        if (outcome === 'dismissed') {
+          showScreen('theme');
+        }
+      } catch (error) {
+        console.error('PWA installation prompt error:', error);
+        showScreen('theme');
+      }
+    } else {
       showScreen('theme');
     }
-  };
-
-  const dismissInstall = () => {
-    setDeferredPrompt(null);
-    showScreen('theme');
   };
 
   const selectTheme = (themeId: keyof typeof themes) => {
@@ -174,17 +170,6 @@ export default function Home() {
 
   return (
     <>
-      <div id="install-modal" className={`fixed inset-0 z-50 flex items-center justify-center p-4 ${screen === 'install' ? '' : 'hidden'}`} style={{ background: 'rgba(0, 0, 0, 0.7)', backdropFilter: 'blur(4px)' }}>
-        <div className="glass-card rounded-3xl p-8 max-w-md w-full animate-fadeInUp">
-          <div className="text-center mb-6">
-            <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gradient-to-r from-purple-500/30 to-indigo-500/30 flex items-center justify-center"><svg className="w-8 h-8 text-purple-200" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg></div>
-            <h3 className="font-display text-2xl text-purple-100 mb-2">Installer l'application</h3>
-            <p className="text-purple-300/70">Accédez à HypnoHistory directement depuis votre bureau ou écran d'accueil</p>
-          </div>
-          <div className="space-y-3 flex flex-col"><button onClick={installApp} className="w-full px-6 py-3 rounded-full bg-gradient-to-r from-purple-600/80 to-indigo-600/80 text-white font-display hover:from-purple-500/90 hover:to-indigo-500/90 transition-all duration-300"> Installer maintenant </button> <button onClick={dismissInstall} className="w-full px-6 py-3 rounded-full border border-purple-400/30 text-purple-200 font-display hover:bg-purple-500/20 transition-all duration-300"> Plus tard </button></div>
-        </div>
-      </div>
-
       <div id="home-screen" className={`h-full w-full flex flex-col items-center justify-center p-6 ${screen === 'home' ? '' : 'hidden'}`} style={{ background: 'radial-gradient(ellipse at center, #1e1432 0%, #0d0a14 50%, #050308 100%)' }}>
         <div className="mb-8 animate-fadeInUp"><Image src="https://i.ibb.co/Z66542nj/Hh.png" alt="HypnoHistory Logo" width={128} height={128} className="object-contain" priority /></div>
         <h1 className="font-display text-5xl md:text-6xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-200 via-violet-300 to-indigo-200 text-center mb-6 animate-fadeInUp" style={{ animationDelay: '0.2s' }}>HypnoHistory</h1>
@@ -255,3 +240,5 @@ export default function Home() {
     </>
   );
 }
+
+    
