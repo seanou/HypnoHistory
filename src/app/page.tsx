@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Image from 'next/image';
 
 export default function Home() {
@@ -12,6 +12,7 @@ export default function Home() {
   const [currentStep, setCurrentStep] = useState(1);
   const [isAnchoringSession, setIsAnchoringSession] = useState(false);
   const [progress, setProgress] = useState(0);
+  const audioRef = useRef<HTMLAudioElement>(null);
 
   useEffect(() => {
     // PWA and Service Worker setup
@@ -50,9 +51,52 @@ export default function Home() {
     };
   }, []);
 
+  // Effect for the anchoring audio session
   useEffect(() => {
-    let progressInterval: NodeJS.Timeout;
-    if (screen === 'hypnosis' && currentTheme) {
+    const audio = audioRef.current;
+    if (!audio) return;
+
+    const onAudioEnd = () => {
+      setProgress(100);
+      setTimeout(() => {
+        setAnchoringCompleted(true);
+        try {
+          localStorage.setItem('hypnohistory_anchoring_done', 'true');
+        } catch (error) {
+          console.error('Could not write to local storage:', error);
+        }
+        setIsAnchoringSession(false);
+        showScreen('result');
+        setProgress(0);
+      }, 500);
+    };
+
+    const updateProgress = () => {
+      const currentProgress = audio.duration ? (audio.currentTime / audio.duration) * 100 : 0;
+      setProgress(currentProgress);
+    };
+
+    if (isAnchoringSession && screen === 'hypnosis') {
+      audio.addEventListener('ended', onAudioEnd);
+      audio.addEventListener('timeupdate', updateProgress);
+      audio.play().catch(e => console.error("Error playing audio:", e));
+    }
+
+    return () => {
+      audio.removeEventListener('ended', onAudioEnd);
+      audio.removeEventListener('timeupdate', updateProgress);
+      if (audio && !audio.paused) {
+        audio.pause();
+        audio.currentTime = 0;
+      }
+    };
+  }, [isAnchoringSession, screen]);
+
+  // Effect for the regular (non-anchoring) hypnosis session
+  useEffect(() => {
+    let progressInterval: NodeJS.Timeout | undefined;
+
+    if (screen === 'hypnosis' && !isAnchoringSession && currentTheme) {
       const sessionDuration = 5000;
       const updateInterval = 100;
       let startTime = Date.now();
@@ -67,25 +111,17 @@ export default function Home() {
           setProgress(100);
           
           setTimeout(() => {
-            if (isAnchoringSession) {
-              setAnchoringCompleted(true);
-              try {
-                localStorage.setItem('hypnohistory_anchoring_done', 'true');
-              } catch (error) {
-                console.error('Could not write to local storage:', error);
-              }
-              setIsAnchoringSession(false);
-            }
             showScreen('result');
             setProgress(0);
           }, 1500);
         }
       }, updateInterval);
     }
+
     return () => {
       if (progressInterval) clearInterval(progressInterval);
     };
-  }, [screen, currentTheme, isAnchoringSession]);
+  }, [screen, isAnchoringSession, currentTheme]);
 
   const themes: any = {
       fable_corbeau: { name: 'Le Corbeau et le Renard', emoji: '🦅', knowledge: [ { title: 'Auteur', content: 'Jean de La Fontaine (1621-1695). Fabuliste français reconnu mondialement pour ses Fables.' }, { title: 'La morale', content: '"Tout flatteur vit aux dépens de celui qui l\'écoute." Ne vous laissez pas manipuler par des compliments intéressés.' }, { title: 'Les personnages', content: 'Le Corbeau: naïf et orgueilleux. Le Renard: rusé et calculateur. Représentent les vices et défauts humains.' }, { title: 'Style', content: 'Écrite en vers octosyllabiques. Dialogue vivant et naturel. Ton ironique et bienveillant.' }, { title: 'Enseignement', content: 'Critique de la vanité et de la sottise. Valorise la prudence et l\'intelligence. Les fables enseignent par l\'exemple.' } ] },
@@ -203,6 +239,11 @@ export default function Home() {
 
   return (
     <>
+       <audio
+        ref={audioRef}
+        src="https://digipad.s3.sbg.io.cloud.ovh.net/1619015/28aafa76b0a6cd368b3c555597e2e888_1_2wspx8y0mha.mp3"
+        preload="auto"
+       />
        {isInstallModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0, 0, 0, 0.7)', backdropFilter: 'blur(4px)' }}>
           <div className="glass-card rounded-3xl p-8 max-w-md w-full animate-fadeInUp">
