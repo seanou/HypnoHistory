@@ -10,9 +10,8 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        body: ['Inter', 'sans-serif'],
-        headline: ['Inter', 'sans-serif'],
-        code: ['monospace'],
+        display: ['"Cormorant Garamond"', 'serif'],
+        body: ['"Crimson Pro"', 'serif'],
       },
       colors: {
         background: 'hsl(var(--background))',
@@ -88,10 +87,41 @@ export default {
             height: '0',
           },
         },
+        'pulse-glow': {
+          '0%, 100%': { boxShadow: '0 0 20px rgba(147, 112, 219, 0.4), 0 0 60px rgba(147, 112, 219, 0.2)' },
+          '50%': { boxShadow: '0 0 40px rgba(147, 112, 219, 0.6), 0 0 80px rgba(147, 112, 219, 0.3)' },
+        },
+        'spiral': {
+          '0%': { transform: 'rotate(0deg) scale(1)', opacity: '0.8' },
+          '50%': { transform: 'rotate(180deg) scale(1.1)', opacity: '1' },
+          '100%': { transform: 'rotate(360deg) scale(1)', opacity: '0.8' },
+        },
+        'float': {
+          '0%, 100%': { transform: 'translateY(0px)' },
+          '50%': { transform: 'translateY(-10px)' },
+        },
+        'fadeInUp': {
+          from: { opacity: '0', transform: 'translateY(30px)' },
+          to: { opacity: '1', transform: 'translateY(0)' },
+        },
+        'breathe': {
+          '0%, 100%': { transform: 'scale(1)', opacity: '0.6' },
+          '50%': { transform: 'scale(1.05)', opacity: '1' },
+        },
+        'text-reveal': {
+          from: { opacity: '0', filter: 'blur(10px)' },
+          to: { opacity: '1', filter: 'blur(0)' },
+        },
       },
       animation: {
         'accordion-down': 'accordion-down 0.2s ease-out',
         'accordion-up': 'accordion-up 0.2s ease-out',
+        'pulse-glow': 'pulse-glow 3s ease-in-out infinite',
+        'spiral': 'spiral 20s linear infinite',
+        'float': 'float 4s ease-in-out infinite',
+        'fadeInUp': 'fadeInUp 0.8s ease-out forwards',
+        'breathe': 'breathe 4s ease-in-out infinite',
+        'text-reveal': 'text-reveal 1.5s ease-out forwards',
       },
     },
   },
