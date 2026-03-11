@@ -14,17 +14,16 @@ export default function Home() {
   const [progress, setProgress] = useState(0);
 
   useEffect(() => {
+    // PWA and Service Worker setup
     if ('serviceWorker' in navigator) {
-      window.addEventListener('load', () => {
-        navigator.serviceWorker.register('/sw.js').then(
-          (registration) => {
-            console.log('ServiceWorker registration successful with scope: ', registration.scope);
-          },
-          (err) => {
-            console.log('ServiceWorker registration failed: ', err);
-          }
-        );
-      });
+      navigator.serviceWorker.register('/sw.js').then(
+        (registration) => {
+          console.log('ServiceWorker registration successful with scope: ', registration.scope);
+        },
+        (err) => {
+          console.log('ServiceWorker registration failed: ', err);
+        }
+      );
     }
     
     const handleBeforeInstallPrompt = (e: Event) => {
@@ -38,14 +37,17 @@ export default function Home() {
     };
     window.addEventListener('appinstalled', handleAppInstalled);
 
+    // Local storage setup
+    try {
+        setAnchoringCompleted(localStorage.getItem('hypnohistory_anchoring_done') === 'true');
+    } catch (error) {
+        console.error('Could not access local storage:', error);
+    }
+
     return () => {
       window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
       window.removeEventListener('appinstalled', handleAppInstalled);
     };
-  }, []);
-
-  useEffect(() => {
-    setAnchoringCompleted(localStorage.getItem('hypnohistory_anchoring_done') === 'true');
   }, []);
 
   useEffect(() => {
@@ -181,9 +183,9 @@ export default function Home() {
           <div id="step-anchoring-check" className="w-full glass-card rounded-2xl p-8 md:p-10 animate-fadeInUp" style={{ animationDelay: '0.2s' }}>
             <div className="flex items-center gap-4 mb-6"><div className="w-10 h-10 rounded-full bg-purple-500/30 flex items-center justify-center text-purple-200 font-display font-bold">4</div><h2 className="font-display text-2xl md:text-3xl text-purple-100">Vérification d'ancrage</h2></div>
             <div className="space-y-6">
-              <p className="text-purple-100 text-lg leading-relaxed">{anchoringCompleted ? 'Vous êtes prêt à explorer ce sujet !' : 'C\'est votre première utilisation ! Vous devez d\'abord suivre une séance d\'ancrage pour accéder au contenu.'}</p>
+              <p className="text-purple-100 text-lg leading-relaxed">{anchoringCompleted ? 'Vous êtes prêt à explorer ce sujet !' : "C'est votre première utilisation ! Vous devez d'abord suivre une séance d'ancrage pour accéder au contenu."}</p>
               <div className="space-y-3 flex flex-col">
-                <button onClick={startAnchoringOrSession} className="w-full px-6 py-4 rounded-full bg-gradient-to-r from-purple-600/80 to-indigo-600/80 text-white font-display hover:from-purple-500/90 hover:to-indigo-500/90 transition-all duration-300">{anchoringCompleted ? 'Continuer vers la séance' : 'Commencer la séance d\'ancrage'}</button>
+                <button onClick={startAnchoringOrSession} className="w-full px-6 py-4 rounded-full bg-gradient-to-r from-purple-600/80 to-indigo-600/80 text-white font-display hover:from-purple-500/90 hover:to-indigo-500/90 transition-all duration-300">{anchoringCompleted ? 'Continuer vers la séance' : "Commencer la séance d'ancrage"}</button>
                 <button onClick={() => setCurrentStep(currentStep - 1)} className="w-full px-6 py-4 rounded-full border border-purple-400/30 text-purple-200 font-display hover:bg-purple-500/20 transition-all duration-300">Revenir en arrière</button>
               </div>
             </div>
