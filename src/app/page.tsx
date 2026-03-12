@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import Image from 'next/image';
-import { Anchor, HelpCircle, X, Star } from 'lucide-react';
+import { Anchor, HelpCircle, X, Star, Mail } from 'lucide-react';
 
 export default function Home() {
   const [screen, setScreen] = useState('home');
@@ -251,6 +251,9 @@ export default function Home() {
         <button onClick={() => setIsFaqOpen(true)} title="F.A.Q." className="p-3 rounded-full bg-purple-500/20 text-purple-200 hover:bg-purple-500/40 transition-colors">
             <HelpCircle className="w-6 h-6" />
         </button>
+        <a href="https://docs.google.com/forms/d/e/1FAIpQLScPraPMdhfp81SBFFEpbaaWP79zRAVL7gBS8sBxcc11kjXgPQ/viewform?usp=publish-editor" target="_blank" rel="noopener noreferrer" title="Contact" className="p-3 rounded-full bg-purple-500/20 text-purple-200 hover:bg-purple-500/40 transition-colors">
+            <Mail className="w-6 h-6" />
+        </a>
     </div>
 
       {isInstallModalOpen && (
