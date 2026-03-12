@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import Image from 'next/image';
-import { Anchor, HelpCircle, X } from 'lucide-react';
+import { Anchor, HelpCircle, X, Star } from 'lucide-react';
 
 export default function Home() {
   const [screen, setScreen] = useState('home');
@@ -20,23 +20,28 @@ export default function Home() {
 
   // Effect for PWA and checking local storage
   useEffect(() => {
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('/sw.js').then(
-        (registration) => {
-          console.log('ServiceWorker registration successful with scope: ', registration.scope);
-        },
-        (err) => {
-          console.log('ServiceWorker registration failed: ', err);
-        }
-      );
-    }
+    // Check if running in standalone mode (installed PWA)
+    const isStandalone = window.matchMedia('(display-mode: standalone)').matches;
     
     const handleBeforeInstallPrompt = (e: Event) => {
-      e.preventDefault();
-      setDeferredPrompt(e);
+        if (isStandalone) return;
+        e.preventDefault();
+        setDeferredPrompt(e);
     };
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
 
+    // Register service worker
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('/sw.js').then(
+            (registration) => {
+                console.log('ServiceWorker registration successful with scope: ', registration.scope);
+            },
+            (err) => {
+                console.log('ServiceWorker registration failed: ', err);
+            }
+        );
+    }
+    
     // Check if anchoring is completed from local storage
     try {
       if (typeof window !== 'undefined') {
@@ -99,8 +104,8 @@ export default function Home() {
   }, [screen, isAnchoringSession, currentTheme, originalTheme]);
 
   const themes = {
-      fable_corbeau: { name: 'Le Corbeau et le Renard', emoji: '🦅', knowledge: [ { title: 'Auteur', content: 'Jean de La Fontaine (1621-1695). Fabuliste français reconnu mondialement pour ses Fables.' }, { title: 'La morale', content: '"Tout flatteur vit aux dépens de celui qui l\'écoute." Ne vous laissez pas manipuler par des compliments intéressés.' }, { title: 'Les personnages', content: 'Le Corbeau: naïf et orgueilleux. Le Renard: rusé et calculateur. Représentent les vices et défauts humains.' }, { title: 'Style', content: 'Écrite en vers octosyllabiques. Dialogue vivant et naturel. Ton ironique et bienveillant.' }, { title: 'Enseignement', content: 'Critique de la vanité et de la sottise. Valorise la prudence et l\'intelligence. Les fables enseignent par l\'exemple.' } ] },
-      anchoring: { name: 'Séance d\'ancrage hypnotique', emoji: '⚓', audioUrl: 'https://digipad.s3.sbg.io.cloud.ovh.net/1619015/28aafa76b0a6cd368b3c555597e2e888_1_2wspx8y0mha.mp3', knowledge: [ { title: 'Ancrage établi', content: 'Vous avez complété avec succès votre séance d\'ancrage initial. Cet ancrage reste actif et reconnaissable par votre inconscient.' }, { title: 'Accès débloqué', content: 'Vous avez maintenant accès à tous les contenus d\'apprentissage hypnotique de HypnoHistory.' }, { title: 'État hypnotique', content: 'Vous avez exploré la profondeur de votre état hypnotique. Vous savez maintenant à quoi vous attendre lors des séances suivantes.' }, { title: 'Réceptivité', content: 'Votre esprit est maintenant réceptif à l\'apprentissage hypnotique. Les informations s\'intégreront naturellement à votre mémoire.' }, { title: 'Début du voyage', content: 'C\'était votre première étape. Des dizaines de sujets passionnants vous attendent. Continuez votre exploration !' } ] }
+      fable_corbeau: { name: 'Le Corbeau et le Renard', emoji: '🦅', receptivity: 2, knowledge: [ { title: 'Auteur', content: 'Jean de La Fontaine (1621-1695). Fabuliste français reconnu mondialement pour ses Fables.' }, { title: 'La morale', content: "'Tout flatteur vit aux dépens de celui qui l'écoute.' Ne vous laissez pas manipuler par des compliments intéressés." }, { title: 'Les personnages', content: 'Le Corbeau: naïf et orgueilleux. Le Renard: rusé et calculateur. Représentent les vices et défauts humains.' }, { title: 'Style', content: 'Écrite en vers octosyllabiques. Dialogue vivant et naturel. Ton ironique et bienveillant.' }, { title: 'Enseignement', content: "Critique de la vanité et de la sottise. Valorise la prudence et l'intelligence. Les fables enseignent par l'exemple." } ] },
+      anchoring: { name: 'Séance d\'ancrage hypnotique', emoji: '⚓', audioUrl: 'https://digipad.s3.sbg.io.cloud.ovh.net/1619015/28aafa76b0a6cd368b3c555597e2e888_1_2wspx8y0mha.mp3', knowledge: [ { title: 'Ancrage établi', content: "Vous avez complété avec succès votre séance d'ancrage initial. Cet ancrage reste actif et reconnaissable par votre inconscient." }, { title: 'Accès débloqué', content: "Vous avez maintenant accès à tous les contenus d'apprentissage hypnotique de HypnoHistory." }, { title: 'État hypnotique', content: "Vous avez exploré la profondeur de votre état hypnotique. Vous savez maintenant à quoi vous attendre lors des séances suivantes." }, { title: 'Réceptivité', content: "Votre esprit est maintenant réceptif à l'apprentissage hypnotique. Les informations s'intégreront naturellement à votre mémoire." }, { title: 'Début du voyage', content: "C'était votre première étape. Des dizaines de sujets passionnants vous attendent. Continuez votre exploration !" } ] }
   };
 
   const showScreen = (screenName: string) => {
@@ -311,13 +316,27 @@ export default function Home() {
           <h2 className="font-display text-4xl md:text-5xl text-purple-100 text-center mb-4">Choisissez votre sujet</h2>
           <p className="text-purple-300/60 text-center mb-12 text-lg max-w-xl">Sélectionnez un personnage ou événement historique</p>
           <div className="grid grid-cols-1 gap-6 max-w-2xl w-full">
-            {Object.keys(themes).filter(t => t !== 'anchoring').map(themeId => (
+            {Object.keys(themes).filter(t => t !== 'anchoring').map(themeId => {
+              const theme = themes[themeId as keyof typeof themes] as any;
+              return (
               <button key={themeId} onClick={() => selectTheme(themeId as keyof typeof themes)} className="glass-card rounded-2xl p-8 text-left hover:border-purple-400/50 transition-all duration-300 group hover:scale-105">
-                <div className="text-5xl mb-4">{themes[themeId as keyof typeof themes].emoji}</div>
-                <h3 className="font-display text-2xl text-purple-100 mb-3 group-hover:text-white transition-colors">{themes[themeId as keyof typeof themes].name}</h3>
-                <p className="text-purple-300/60 text-base">{themes[themeId as keyof typeof themes].knowledge[0].content}</p>
+                <div className="flex justify-between items-start mb-4">
+                  <div className="text-5xl">{theme.emoji}</div>
+                  {theme.receptivity && (
+                    <div className="flex items-center gap-2 text-sm text-purple-300/70">
+                        <span>Réceptivité</span>
+                        <div className="flex items-center">
+                            {[...Array(5)].map((_, i) => (
+                                <Star key={i} className={`w-5 h-5 ${i < theme.receptivity ? 'text-yellow-400 fill-yellow-400' : 'text-purple-400/30'}`} />
+                            ))}
+                        </div>
+                    </div>
+                  )}
+                </div>
+                <h3 className="font-display text-2xl text-purple-100 mb-3 group-hover:text-white transition-colors">{theme.name}</h3>
+                <p className="text-purple-300/60 text-base">{theme.knowledge[0].content}</p>
               </button>
-            ))}
+            )})}
           </div>
         </div>
       </div>
@@ -363,9 +382,9 @@ export default function Home() {
             <div id="step-anchoring-check" className="w-full glass-card rounded-2xl p-8 md:p-10 animate-fadeInUp" style={{ animationDelay: '0.2s' }}>
                 <div className="flex items-center gap-4 mb-6"><div className="w-10 h-10 rounded-full bg-purple-500/30 flex items-center justify-center text-purple-200 font-display font-bold">4</div><h2 className="font-display text-2xl md:text-3xl text-purple-100">Vérification d'ancrage</h2></div>
                 <div className="space-y-6">
-                    <p className="text-purple-100 text-lg leading-relaxed">{anchoringCompleted ? 'Votre ancrage est actif. Vous êtes prêt à explorer ce sujet !' : 'C\'est votre première utilisation ! Vous devez d\'abord suivre une séance d\'ancrage pour accéder au contenu.'}</p>
+                    <p className="text-purple-100 text-lg leading-relaxed">{anchoringCompleted ? 'Votre ancrage est actif. Vous êtes prêt à explorer ce sujet !' : "C'est votre première utilisation ! Vous devez d'abord suivre une séance d'ancrage pour accéder au contenu."}</p>
                     <div className="space-y-3 flex flex-col">
-                        <button onClick={startAnchoringOrSession} className="w-full px-6 py-4 rounded-full bg-gradient-to-r from-purple-600/80 to-indigo-600/80 text-white font-display hover:from-purple-500/90 hover:to-indigo-500/90 transition-all duration-300">{anchoringCompleted ? 'Continuer vers la séance' : 'Commencer la séance d\'ancrage'}</button>
+                        <button onClick={startAnchoringOrSession} className="w-full px-6 py-4 rounded-full bg-gradient-to-r from-purple-600/80 to-indigo-600/80 text-white font-display hover:from-purple-500/90 hover:to-indigo-500/90 transition-all duration-300">{anchoringCompleted ? 'Continuer vers la séance' : "Commencer la séance d'ancrage"}</button>
                         <button onClick={() => setCurrentStep(currentStep - 1)} className="w-full px-6 py-4 rounded-full border border-purple-400/30 text-purple-200 font-display hover:bg-purple-500/20 transition-all duration-300">Revenir en arrière</button>
                     </div>
                 </div>
