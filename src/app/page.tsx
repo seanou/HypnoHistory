@@ -117,6 +117,19 @@ export default function Home() {
 
   const themes = {
       fable_corbeau: { name: 'Le Corbeau et le Renard', emoji: '🦅', receptivity: 2, audioUrl: 'https://digipad.s3.sbg.io.cloud.ovh.net/1619015/95a3a728b778e2d7e5f434feb6006275_1_47fdbmz7oa9.mp3', knowledge: [ { title: 'Auteur', content: 'Jean de La Fontaine (1621-1695). Fabuliste français reconnu mondialement pour ses Fables.' }, { title: 'La morale', content: "'Tout flatteur vit aux dépens de celui qui l'écoute.' Ne vous laissez pas manipuler par des compliments intéressés." }, { title: 'Les personnages', content: 'Le Corbeau: naïf et orgueilleux. Le Renard: rusé et calculateur. Représentent les vices et défauts humains.' }, { title: 'Style', content: 'Écrite en vers octosyllabiques. Dialogue vivant et naturel. Ton ironique et bienveillant.' }, { title: 'Enseignement', content: "Critique de la vanité et de la sottise. Valorise la prudence et l'intelligence. Les fables enseignent par l'exemple." } ] },
+      napoleon: {
+        name: 'Voir Napoléon Ier et discuter avec lui',
+        emoji: '👑',
+        receptivity: 5,
+        audioUrl: 'https://digipad.s3.sbg.io.cloud.ovh.net/1619015/6955033a08a8796343112dfa5ff8a61b_1_128q0d83ob4p.mp3',
+        knowledge: [
+          { title: 'Identité', content: 'Napoléon Bonaparte (1769-1821). Empereur des Français, chef militaire et homme d\'État.' },
+          { title: 'Le Consulat et l\'Empire', content: 'A pris le pouvoir par le coup d\'État du 18 Brumaire. Premier Consul puis Empereur en 1804.' },
+          { title: 'Les Réformes', content: 'Auteur du Code Civil, création des lycées, de la Banque de France et de la Légion d\'honneur.' },
+          { title: 'Les Conquêtes', content: 'A mené les guerres napoléoniennes, dominant une grande partie de l\'Europe. Connu pour ses victoires comme Austerlitz.' },
+          { title: 'La Chute', content: 'A connu la défaite en Russie, l\'abdication en 1814, l\'exil à l\'île d\'Elbe, les Cent-Jours, et la défaite finale à Waterloo en 1815. Exilé à Sainte-Hélène.' }
+        ]
+      },
       anchoring: { name: 'Séance d\'ancrage hypnotique', emoji: '⚓', audioUrl: 'https://digipad.s3.sbg.io.cloud.ovh.net/1619015/28aafa76b0a6cd368b3c555597e2e888_1_2wspx8y0mha.mp3', knowledge: [ { title: 'Ancrage établi', content: "Vous avez complété avec succès votre séance d'ancrage initial. Cet ancrage reste actif et reconnaissable par votre inconscient." }, { title: 'Accès débloqué', content: "Vous avez maintenant accès à tous les contenus d'apprentissage hypnotique de HypnoHistory." }, { title: 'État hypnotique', content: "Vous avez exploré la profondeur de votre état hypnotique. Vous savez maintenant à quoi vous attendre lors des séances suivantes." }, { title: 'Réceptivité', content: "Votre esprit est maintenant réceptif à l'apprentissage hypnotique. Les informations s'intégreront naturellement à votre mémoire." }, { title: 'Début du voyage', content: "C'était votre première étape. Des dizaines de sujets passionnants vous attendent. Continuez votre exploration !" } ] }
   };
 
@@ -207,6 +220,10 @@ export default function Home() {
     if (originalTheme && originalTheme.name !== themes.anchoring.name) {
         // User was trying to access content, let them proceed
         setCurrentTheme(originalTheme);
+         if (audioRef.current && originalTheme?.audioUrl) {
+            audioRef.current.src = originalTheme.audioUrl;
+            audioRef.current.load();
+        }
         setProgress(0);
         showScreen('hypnosis');
     } else {
@@ -329,7 +346,7 @@ export default function Home() {
         <div className="flex-1 flex flex-col items-center justify-center">
           <h2 className="font-display text-4xl md:text-5xl text-purple-100 text-center mb-4">Choisissez votre sujet</h2>
           <p className="text-purple-300/60 text-center mb-12 text-lg max-w-xl">Sélectionnez un personnage ou événement historique</p>
-          <div className="grid grid-cols-1 gap-6 max-w-2xl w-full">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl w-full">
             {Object.keys(themes).filter(t => t !== 'anchoring').map(themeId => {
               const theme = themes[themeId as keyof typeof themes] as any;
               return (
@@ -396,9 +413,9 @@ export default function Home() {
             <div id="step-anchoring-check" className="w-full glass-card rounded-2xl p-8 md:p-10 animate-fadeInUp" style={{ animationDelay: '0.2s' }}>
                 <div className="flex items-center gap-4 mb-6"><div className="w-10 h-10 rounded-full bg-purple-500/30 flex items-center justify-center text-purple-200 font-display font-bold">4</div><h2 className="font-display text-2xl md:text-3xl text-purple-100">Vérification d'ancrage</h2></div>
                 <div className="space-y-6">
-                    <p className="text-purple-100 text-lg leading-relaxed">{anchoringCompleted ? 'Votre ancrage est actif. Vous êtes prêt à explorer ce sujet !' : "C'est votre première utilisation ! Vous devez d'abord suivre une séance d'ancrage pour accéder au contenu."}</p>
+                    <p className="text-purple-100 text-lg leading-relaxed">{anchoringCompleted ? 'Votre ancrage est actif. Vous êtes prêt à explorer ce sujet !' : 'C\'est votre première utilisation ! Vous devez d\'abord suivre une séance d\'ancrage pour accéder au contenu.'}</p>
                     <div className="space-y-3 flex flex-col">
-                        <button onClick={startAnchoringOrSession} className="w-full px-6 py-4 rounded-full bg-gradient-to-r from-purple-600/80 to-indigo-600/80 text-white font-display hover:from-purple-500/90 hover:to-indigo-500/90 transition-all duration-300">{anchoringCompleted ? 'Continuer vers la séance' : "Commencer la séance d'ancrage"}</button>
+                        <button onClick={startAnchoringOrSession} className="w-full px-6 py-4 rounded-full bg-gradient-to-r from-purple-600/80 to-indigo-600/80 text-white font-display hover:from-purple-500/90 hover:to-indigo-500/90 transition-all duration-300">{anchoringCompleted ? 'Continuer vers la séance' : 'Commencer la séance d\'ancrage'}</button>
                         <button onClick={() => setCurrentStep(currentStep - 1)} className="w-full px-6 py-4 rounded-full border border-purple-400/30 text-purple-200 font-display hover:bg-purple-500/20 transition-all duration-300">Revenir en arrière</button>
                     </div>
                 </div>
