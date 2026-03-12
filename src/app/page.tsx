@@ -82,7 +82,19 @@ export default function Home() {
     };
     
     if (screen === 'hypnosis') {
-        if (!audio) return;
+        if (!audio || !audio.src) {
+             // Fallback for themes without audio: 5-second timer
+            let timerProgress = 0;
+            progressInterval = setInterval(() => {
+                timerProgress += 20; // 100 / 5
+                setProgress(timerProgress);
+                if (timerProgress >= 100) {
+                    clearInterval(progressInterval);
+                    onAudioEnd();
+                }
+            }, 1000);
+            return;
+        };
         audio.addEventListener('ended', onAudioEnd);
         audio.addEventListener('timeupdate', updateAudioProgress);
         audio.play().catch(e => console.error("Error playing audio:", e));
@@ -104,7 +116,7 @@ export default function Home() {
   }, [screen, isAnchoringSession, currentTheme, originalTheme]);
 
   const themes = {
-      fable_corbeau: { name: 'Le Corbeau et le Renard', emoji: '🦅', receptivity: 2, knowledge: [ { title: 'Auteur', content: 'Jean de La Fontaine (1621-1695). Fabuliste français reconnu mondialement pour ses Fables.' }, { title: 'La morale', content: "'Tout flatteur vit aux dépens de celui qui l'écoute.' Ne vous laissez pas manipuler par des compliments intéressés." }, { title: 'Les personnages', content: 'Le Corbeau: naïf et orgueilleux. Le Renard: rusé et calculateur. Représentent les vices et défauts humains.' }, { title: 'Style', content: 'Écrite en vers octosyllabiques. Dialogue vivant et naturel. Ton ironique et bienveillant.' }, { title: 'Enseignement', content: "Critique de la vanité et de la sottise. Valorise la prudence et l'intelligence. Les fables enseignent par l'exemple." } ] },
+      fable_corbeau: { name: 'Le Corbeau et le Renard', emoji: '🦅', receptivity: 2, audioUrl: 'https://digipad.s3.sbg.io.cloud.ovh.net/1619015/95a3a728b778e2d7e5f434feb6006275_1_47fdbmz7oa9.mp3', knowledge: [ { title: 'Auteur', content: 'Jean de La Fontaine (1621-1695). Fabuliste français reconnu mondialement pour ses Fables.' }, { title: 'La morale', content: "'Tout flatteur vit aux dépens de celui qui l'écoute.' Ne vous laissez pas manipuler par des compliments intéressés." }, { title: 'Les personnages', content: 'Le Corbeau: naïf et orgueilleux. Le Renard: rusé et calculateur. Représentent les vices et défauts humains.' }, { title: 'Style', content: 'Écrite en vers octosyllabiques. Dialogue vivant et naturel. Ton ironique et bienveillant.' }, { title: 'Enseignement', content: "Critique de la vanité et de la sottise. Valorise la prudence et l'intelligence. Les fables enseignent par l'exemple." } ] },
       anchoring: { name: 'Séance d\'ancrage hypnotique', emoji: '⚓', audioUrl: 'https://digipad.s3.sbg.io.cloud.ovh.net/1619015/28aafa76b0a6cd368b3c555597e2e888_1_2wspx8y0mha.mp3', knowledge: [ { title: 'Ancrage établi', content: "Vous avez complété avec succès votre séance d'ancrage initial. Cet ancrage reste actif et reconnaissable par votre inconscient." }, { title: 'Accès débloqué', content: "Vous avez maintenant accès à tous les contenus d'apprentissage hypnotique de HypnoHistory." }, { title: 'État hypnotique', content: "Vous avez exploré la profondeur de votre état hypnotique. Vous savez maintenant à quoi vous attendre lors des séances suivantes." }, { title: 'Réceptivité', content: "Votre esprit est maintenant réceptif à l'apprentissage hypnotique. Les informations s'intégreront naturellement à votre mémoire." }, { title: 'Début du voyage', content: "C'était votre première étape. Des dizaines de sujets passionnants vous attendent. Continuez votre exploration !" } ] }
   };
 
@@ -116,7 +128,8 @@ export default function Home() {
   };
   
   const handleStartClick = () => {
-    if (deferredPrompt) {
+    const isStandalone = window.matchMedia('(display-mode: standalone)').matches;
+    if (deferredPrompt && !isStandalone) {
       setIsInstallModalOpen(true);
     } else {
       showScreen('theme');
@@ -163,6 +176,7 @@ export default function Home() {
             audioRef.current.src = originalTheme.audioUrl;
             audioRef.current.load();
         } else if (audioRef.current) {
+            // Ensure no audio plays if the theme has no audioUrl
             audioRef.current.removeAttribute('src');
         }
     }
